@@ -1,0 +1,26 @@
+//created on: 2019-6-16
+package org.dj.rule.engine
+import java.util.Map
+import java.util.List
+import org.dj.rule.engine.ConnectedTransaction
+import org.dj.rule.engine.ConnectedCorporation
+
+rule "wz-ctdemo-rule1"
+
+when
+    $map : Map($corplist : this["corpList"])
+    $cTransaction : ConnectedTransaction(tradeSum >= 1000 )
+    exists (ConnectedCorporation( name == $cTransaction.getConnectedName()) from $corplist )
+then
+    System.out.println("The wz-ctdemo-rule1   is  fired!");
+    $cTransaction.setCbrcConnected(true);
+    System.out.println("id:"+$cTransaction.getId());
+    System.out.println("corpList.size:"+((List)$corplist).size() );
+    System.out.println("ConnectedName:"+$cTransaction.getConnectedName() );
+    
+ end
+
+ query "query-result"
+    $returnObj : ConnectedTransaction()
+ end
+

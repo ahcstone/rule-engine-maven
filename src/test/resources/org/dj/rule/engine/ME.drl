@@ -1,0 +1,262 @@
+//created on: 2019-6-16
+//内地交易所 MainlandExchange
+//内地交易所的触发规则--先没判断禁止类指标 1 2 3 属于禁止类则直接返回，不属于禁止类 则继续 4/7/10的判断
+package org.dj.rule.engine
+import java.util.Map
+import java.util.HashMap
+import java.util.List
+import java.util.ArrayList
+import java.util.Date
+import org.dj.rule.engine.ConnectedTransaction
+
+//前三个是禁止类指标 先判断
+//拆借资金至关联方类交易-禁止类
+rule "wz-me-rule1"
+salience 100
+
+    when
+        $cTransaction : ConnectedTransaction( meConnected == true, srcSystemName == "同业往来 - 拆借/拆出" )
+    then
+        System.out.println("The wz-me-rule1 is fired!");
+        $cTransaction.setMeProhibit(true);
+        $cTransaction.setRuleName("拆借资金至关联方类交易-禁止类");
+        $cTransaction.setRuleMessage("根据证监会《关于规范上市公司与关联方资金往来及上市公司对外担保若干问题的通知》的规定，上市公司不得有偿或无偿地拆借公司的资金给控股股东及其他关联方使用");
+        
+        Map firedRule = new HashMap<String,String>();
+        firedRule.put("拆借资金至关联方类交易-禁止类","根据证监会《关于规范上市公司与关联方资金往来及上市公司对外担保若干问题的通知》的规定，上市公司不得有偿或无偿地拆借公司的资金给控股股东及其他关联方使用");
+        $cTransaction.getFiredRules().add(firedRule);
+        update($cTransaction);
+        
+end
+
+//委托关联方投资类交易-禁止类
+rule "wz-me-rule2"
+salience 100
+
+    when
+        $cTransaction : ConnectedTransaction( meConnected == true, srcSystemName == "委托投资类业务" )
+    then
+        System.out.println("The wz-me-rule2 is fired!");
+        $cTransaction.setMeProhibit(true);
+        $cTransaction.setRuleName("委托关联方投资类交易-禁止类");
+        $cTransaction.setRuleMessage("根据证监会《关于规范上市公司与关联方资金往来及上市公司对外担保若干问题的通知》的规定，上市公司不得委托控股股东及其他关联方进行投资活动");
+        
+        Map firedRule = new HashMap<String,String>();
+        firedRule.put("委托关联方投资类交易-禁止类","根据证监会《关于规范上市公司与关联方资金往来及上市公司对外担保若干问题的通知》的规定，上市公司不得委托控股股东及其他关联方进行投资活动");
+        $cTransaction.getFiredRules().add(firedRule);
+        update($cTransaction);
+        
+end
+
+//为持股50%以下关联方提供担保类交易-禁止类
+rule "wz-me-rule3"
+salience 100
+
+    when
+        $cTransaction : ConnectedTransaction( meConnected == true, srcSystemName == "担保业务", (insto * 100) < 50 )
+    then
+        System.out.println("The wz-me-rule3 is fired!");
+        $cTransaction.setMeProhibit(true);
+        $cTransaction.setRuleName("为持股50%以下关联方提供担保类交易-禁止类");
+        $cTransaction.setRuleMessage("根据证监会《关于规范上市公司与关联方资金往来及上市公司对外担保若干问题的通知》的规定，上市公司不得为控股股东及本公司持股50%以下的其他关联方提供担保");
+        
+        Map firedRule = new HashMap<String,String>();
+        firedRule.put("为持股50%以下关联方提供担保类交易-禁止类","根据证监会《关于规范上市公司与关联方资金往来及上市公司对外担保若干问题的通知》的规定，上市公司不得为控股股东及本公司持股50%以下的其他关联方提供担保");
+        $cTransaction.getFiredRules().add(firedRule);
+        update($cTransaction);
+
+end
+
+
+
+//需要审议及披露的关联交易
+//重大关联交易
+rule "wz-me-rule4-sub01"
+salience 50
+activation-group "tradesum-group"
+
+    when
+        $cTransaction : ConnectedTransaction( meConnected == true, meProhibit == false, cbrcTradeType == "授信", ((tradeSum*100)/netCapital) > 5, tradeSum > 3000 )
+    then
+        System.out.println("The wz-me-rule4-sub01 is fired!");
+        $cTransaction.setRuleName("需要审议及披露的关联交易");
+        $cTransaction.setRuleMessage("根据上交所的要求，该笔重大关联交易应当及时披露外，还应遵循《XX银行关联交易管理实施细则》对授信类重大关联交易的要求，该交易需由关联交易经办部门负责人、法律合规部关联交易管理人员、风险管理部关联交易管理人员（并经风险管理部负责人确认）、首席风险官审查后，提交至董事会关联交易控制委员会、董事会、股东大会进行审议；独立董事应对重大关联交易的公允性，以及内部审批程序履行情况发表书面意见。");
+        
+        Map firedRule = new HashMap<String,String>();
+        firedRule.put("需要审议及披露的关联交易","根据上交所的要求，该笔重大关联交易应当及时披露外，还应遵循《XX银行关联交易管理实施细则》对授信类重大关联交易的要求，该交易需由关联交易经办部门负责人、法律合规部关联交易管理人员、风险管理部关联交易管理人员（并经风险管理部负责人确认）、首席风险官审查后，提交至董事会关联交易控制委员会、董事会、股东大会进行审议；独立董事应对重大关联交易的公允性，以及内部审批程序履行情况发表书面意见。");
+        $cTransaction.getFiredRules().add(firedRule);
+        //update($cTransaction);
+
+end
+
+rule "wz-me-rule4-sub02"
+salience 50
+activation-group "tradesum-group"
+
+    when
+        $cTransaction : ConnectedTransaction( meConnected == true, meProhibit == false, ((tradeSum*100)/netCapital) > 5, tradeSum > 3000 )
+    then
+        System.out.println("The wz-me-rule4-sub02 is fired!");
+        $cTransaction.setRuleName("需要审议及披露的关联交易");
+        $cTransaction.setRuleMessage("根据上交所的要求，该笔重大关联交易应当及时披露外，还应遵循《XX银行关联交易管理实施细则》对非授信类重大关联交易的要求，该交易需由关联交易经办部门负责人、法律合规部关联交易管理人员（并经法律合规部负责人确认）、关联交易经办部门主管行领导审查后，提交至董事会关联交易控制委员会、董事会进行批准；独立董事应对重大关联交易的公允性以及内部审批程序履行情况发表书面意见。");
+        
+        Map firedRule = new HashMap<String,String>();
+        firedRule.put("需要审议及披露的关联交易","根据上交所的要求，该笔重大关联交易应当及时披露外，还应遵循《XX银行关联交易管理实施细则》对非授信类重大关联交易的要求，该交易需由关联交易经办部门负责人、法律合规部关联交易管理人员（并经法律合规部负责人确认）、关联交易经办部门主管行领导审查后，提交至董事会关联交易控制委员会、董事会进行批准；独立董事应对重大关联交易的公允性以及内部审批程序履行情况发表书面意见。");
+        $cTransaction.getFiredRules().add(firedRule);
+
+end
+
+//需要披露的关联交易（与关联法人进行交易）
+rule "wz-me-rule5"
+salience 10
+activation-group "tradesum-group"
+
+    when
+        $cTransaction : ConnectedTransaction( meConnected == true, meProhibit == false, connectedType == "关联法人", ((tradeSum*1000)/netCapital) > 5, tradeSum > 300 )
+    then
+        System.out.println("The wz-me-rule5 is fired!");
+        $cTransaction.setMeProhibit(true);
+        $cTransaction.setRuleName("需要披露的关联交易（与关联法人进行交易）");
+        $cTransaction.setRuleMessage("根据上交所的要求，与关联法人拟发生的交易金额在300万元以上，且占公司最近一期经审计净资产绝对值0.5％以上的关联交易（上市公司提供担保除外），应当及时披露。");
+        
+        Map firedRule = new HashMap<String,String>();
+        firedRule.put("需要披露的关联交易（与关联法人进行交易）","根据上交所的要求，与关联法人拟发生的交易金额在300万元以上，且占公司最近一期经审计净资产绝对值0.5％以上的关联交易（上市公司提供担保除外），应当及时披露。");
+        $cTransaction.getFiredRules().add(firedRule);
+        update($cTransaction);
+
+end
+
+//需要披露的关联交易（与关联自然人进行交易）
+rule "wz-me-rule6"
+salience 10
+activation-group "tradesum-group"
+
+    when
+        $cTransaction : ConnectedTransaction( meConnected == true, meProhibit == false, connectedType == "关联自然人", tradeSum > 30 )
+    then
+        System.out.println("The wz-me-rule6 is fired!");
+        $cTransaction.setMeProhibit(true);
+        $cTransaction.setRuleName("需要披露的关联交易（与关联自然人进行交易）");
+        $cTransaction.setRuleMessage("根据上交所的要求，与关联自然人拟发生的交易金额在30万元以上的关联交易（上市公司提供担保除外），应当及时披露。");
+        
+        Map firedRule = new HashMap<String,String>();
+        firedRule.put("需要披露的关联交易（与关联自然人进行交易）","根据上交所的要求，与关联自然人拟发生的交易金额在30万元以上的关联交易（上市公司提供担保除外），应当及时披露。");
+        $cTransaction.getFiredRules().add(firedRule);
+        update($cTransaction);
+
+end
+
+//需要审议及披露的关联交易（同一关联方）
+rule "wz-me-rule7-sub01"
+salience 50
+activation-group "balance-group"
+
+    when
+        $cTransaction : ConnectedTransaction( meConnected == true, meProhibit == false, cbrcTradeType == "授信", ((tradeBalance*100)/netCapital) > 5, tradeBalance > 3000 )
+    then
+        System.out.println("The wz-me-rule7-sub01 is fired!");
+        $cTransaction.setRuleName("需要审议及披露的关联交易（同一关联方）");
+        $cTransaction.setRuleMessage("截至该笔关联交易，与“本表中关联方名称字段值”12个月内累计的交易金额已达“本表中累计交易金额字段值”，满足上交所重大关联交易标准。根据上交所的要求，与同一关联方连续12个月内进行交易满足重大关联交易标准时应当及时披露外，还应遵循《XX银行关联交易管理实施细则》对授信类重大关联交易的要求，该交易需由关联交易经办部门负责人、法律合规部关联交易管理人员、风险管理部关联交易管理人员（并经风险管理部负责人确认）、首席风险官审查后，提交至董事会关联交易控制委员会、董事会、股东大会进行审议；独立董事应对重大关联交易的公允性，以及内部审批程序履行情况发表书面意见。");
+        
+        Map firedRule = new HashMap<String,String>();
+        firedRule.put("需要审议及披露的关联交易（同一关联方）","截至该笔关联交易，与“本表中关联方名称字段值”12个月内累计的交易金额已达“本表中累计交易金额字段值”，满足上交所重大关联交易标准。根据上交所的要求，与同一关联方连续12个月内进行交易满足重大关联交易标准时应当及时披露外，还应遵循《XX银行关联交易管理实施细则》对授信类重大关联交易的要求，该交易需由关联交易经办部门负责人、法律合规部关联交易管理人员、风险管理部关联交易管理人员（并经风险管理部负责人确认）、首席风险官审查后，提交至董事会关联交易控制委员会、董事会、股东大会进行审议；独立董事应对重大关联交易的公允性，以及内部审批程序履行情况发表书面意见。");
+        $cTransaction.getFiredRules().add(firedRule);
+
+end
+
+rule "wz-me-rule7-sub02"
+salience 50
+activation-group "balance-group"
+
+    when
+        $cTransaction : ConnectedTransaction( meConnected == true, meProhibit == false, ((tradeBalance*100)/netCapital) > 5, tradeBalance > 3000 )
+    then
+        System.out.println("The wz-me-rule7-sub02 is fired!");
+        $cTransaction.setRuleName("需要审议及披露的关联交易（同一关联方）");
+        $cTransaction.setRuleMessage("截至该笔关联交易，与“本表中关联方名称字段值”12个月内累计的交易金额已达“本表中累计交易金额字段值”，满足上交所重大关联交易标准。根据上交所的要求，与同一关联方连续12个月内进行交易满足重大关联交易标准时应当及时披露外，还应遵循《XX银行关联交易管理实施细则》对非授信类重大关联交易的要求，该交易需由关联交易经办部门负责人、法律合规部关联交易管理人员（并经法律合规部负责人确认）、关联交易经办部门主管行领导审查后，提交至董事会关联交易控制委员会、董事会进行批准；独立董事应对重大关联交易的公允性以及内部审批程序履行情况发表书面意见。");
+        
+        Map firedRule = new HashMap<String,String>();
+        firedRule.put("需要审议及披露的关联交易（同一关联方）","截至该笔关联交易，与“本表中关联方名称字段值”12个月内累计的交易金额已达“本表中累计交易金额字段值”，满足上交所重大关联交易标准。根据上交所的要求，与同一关联方连续12个月内进行交易满足重大关联交易标准时应当及时披露外，还应遵循《XX银行关联交易管理实施细则》对非授信类重大关联交易的要求，该交易需由关联交易经办部门负责人、法律合规部关联交易管理人员（并经法律合规部负责人确认）、关联交易经办部门主管行领导审查后，提交至董事会关联交易控制委员会、董事会进行批准；独立董事应对重大关联交易的公允性以及内部审批程序履行情况发表书面意见。");
+        $cTransaction.getFiredRules().add(firedRule);
+
+end
+
+//需要披露的关联交易（同一关联法人）
+rule "wz-me-rule8"
+salience 10
+activation-group "balance-group"
+
+    when
+        $cTransaction : ConnectedTransaction( meConnected == true, meProhibit == false, connectedType == "关联法人", ((tradeBalance*1000)/netCapital) > 5, tradeBalance > 300 )
+    then
+        System.out.println("The wz-me-rule8 is fired!");
+        $cTransaction.setMeProhibit(true);
+        $cTransaction.setRuleName("需要披露的关联交易（同一关联法人）");
+        $cTransaction.setRuleMessage("根据上交所的要求，与同一关联法人连续12个月内进行的交易金额在300万元以上，且占公司最近一期经审计净资产绝对值0.5％以上的关联交易（上市公司提供担保除外），应当及时披露。截至该笔关联交易，与“本表中关联方名称字段值”12个月内累计的交易金额已达“本表中累计交易金额字段值”，满足上交所披露标准。");
+        
+        Map firedRule = new HashMap<String,String>();
+        firedRule.put("需要披露的关联交易（同一关联法人）","根据上交所的要求，与同一关联法人连续12个月内进行的交易金额在300万元以上，且占公司最近一期经审计净资产绝对值0.5％以上的关联交易（上市公司提供担保除外），应当及时披露。截至该笔关联交易，与“本表中关联方名称字段值”12个月内累计的交易金额已达“本表中累计交易金额字段值”，满足上交所披露标准。");
+        $cTransaction.getFiredRules().add(firedRule);
+
+end
+
+
+//需要披露的关联交易（同一关自然人）
+rule "wz-me-rule9"
+salience 10
+activation-group "balance-group"
+
+    when
+        $cTransaction : ConnectedTransaction( meConnected == true, meProhibit == false, connectedType == "关联自然人", tradeBalance > 30 )
+    then
+        System.out.println("The wz-me-rule9 is fired!");
+        $cTransaction.setMeProhibit(true);
+        $cTransaction.setRuleName("需要披露的关联交易（同一关自然人）");
+        $cTransaction.setRuleMessage("根据上交所的要求，与同一关联自然人连续12个月内进行的交易金额在30万元以上的关联交易（上市公司提供担保除外），应当及时披露。截至该笔关联交易，与“本表中关联方名称字段值”12个月内累计的交易金额已达“本表中累计交易金额字段值”，满足上交所披露标准。");
+        
+        Map firedRule = new HashMap<String,String>();
+        firedRule.put("需要披露的关联交易（同一关自然人）","根据上交所的要求，与同一关联自然人连续12个月内进行的交易金额在30万元以上的关联交易（上市公司提供担保除外），应当及时披露。截至该笔关联交易，与“本表中关联方名称字段值”12个月内累计的交易金额已达“本表中累计交易金额字段值”，满足上交所披露标准。");
+        $cTransaction.getFiredRules().add(firedRule);
+
+end
+
+
+//需要审议及披露的关联方交易（同类关联交易） 
+//注意这里面借用了 同一关联方累计金额 tradeBalance 实际上同类关联交易的累计金额 应该是和同一关联方的累计交易金额不同
+rule "wz-me-rule10-sub01"
+salience 50
+activation-group "new-balance-group"
+
+    when
+        $cTransaction : ConnectedTransaction( meConnected == true, meProhibit == false, cbrcTradeType == "授信", ((tradeBalance*100)/netCapital) > 5, tradeBalance > 3000 )
+    then
+        System.out.println("The wz-me-rule10-sub01 is fired!");
+        $cTransaction.setRuleName("需要审议及披露的关联交易（同类关联交易）");
+        $cTransaction.setRuleMessage("截至该笔关联交易，与“本表中关联方名称字段值”12个月内累计的交易金额已达“本表中累计交易金额字段值”，满足上交所重大关联交易标准。根据上交所的要求，与同一关联方连续12个月内进行交易满足重大关联交易标准时应当及时披露外，还应遵循《XX银行关联交易管理实施细则》对授信类重大关联交易的要求，该交易需由关联交易经办部门负责人、法律合规部关联交易管理人员、风险管理部关联交易管理人员（并经风险管理部负责人确认）、首席风险官审查后，提交至董事会关联交易控制委员会、董事会、股东大会进行审议；独立董事应对重大关联交易的公允性，以及内部审批程序履行情况发表书面意见。");
+        
+        Map firedRule = new HashMap<String,String>();
+        firedRule.put("需要审议及披露的关联交易（同类关联交易）","截至该笔关联交易，与“本表中关联方名称字段值”12个月内累计的交易金额已达“本表中累计交易金额字段值”，满足上交所重大关联交易标准。根据上交所的要求，与同一关联方连续12个月内进行交易满足重大关联交易标准时应当及时披露外，还应遵循《XX银行关联交易管理实施细则》对授信类重大关联交易的要求，该交易需由关联交易经办部门负责人、法律合规部关联交易管理人员、风险管理部关联交易管理人员（并经风险管理部负责人确认）、首席风险官审查后，提交至董事会关联交易控制委员会、董事会、股东大会进行审议；独立董事应对重大关联交易的公允性，以及内部审批程序履行情况发表书面意见。");
+        $cTransaction.getFiredRules().add(firedRule);
+
+end
+
+rule "wz-me-rule10-sub02"
+salience 50
+activation-group "new-balance-group"
+
+    when
+        $cTransaction : ConnectedTransaction( meConnected == true, meProhibit == false, ((tradeBalance*100)/netCapital) > 5, tradeBalance > 3000 )
+    then
+        System.out.println("The wz-me-rule10-sub02 is fired!");
+        $cTransaction.setRuleName("需要审议及披露的关联交易（同类关联交易）");
+        $cTransaction.setRuleMessage("截至该笔关联交易，该类关联交易12个月内累计的交易金额已达“本表中累计交易金额字段值”，满足上交所重大关联交易标准。根据上交所的要求，同类关联交易连续12个月内进行的交易满足重大关联交易标准时应当及时披露外，还应遵循《XX银行关联交易管理实施细则》对授信类重大关联交易的要求，该交易需由关联交易经办部门负责人、法律合规部关联交易管理人员、风险管理部关联交易管理人员（并经风险管理部负责人确认）、首席风险官审查后，提交至董事会关联交易控制委员会、董事会、股东大会进行审议；独立董事应对重大关联交易的公允性，以及内部审批程序履行情况发表书面意见。");
+        
+        Map firedRule = new HashMap<String,String>();
+        firedRule.put("需要审议及披露的关联交易（同类关联交易）","截至该笔关联交易，该类关联交易12个月内累计的交易金额已达“本表中累计交易金额字段值”，满足上交所重大关联交易标准。根据上交所的要求，同类关联交易连续12个月内进行的交易满足重大关联交易标准时应当及时披露外，还应遵循《XX银行关联交易管理实施细则》对授信类重大关联交易的要求，该交易需由关联交易经办部门负责人、法律合规部关联交易管理人员、风险管理部关联交易管理人员（并经风险管理部负责人确认）、首席风险官审查后，提交至董事会关联交易控制委员会、董事会、股东大会进行审议；独立董事应对重大关联交易的公允性，以及内部审批程序履行情况发表书面意见。");
+        $cTransaction.getFiredRules().add(firedRule);
+
+end
+
+query "query-result"
+    $returnObj : ConnectedTransaction()
+end

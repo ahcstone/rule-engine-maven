@@ -1,0 +1,8 @@
+# Ignore eclipse project-specific cache directory
+.classpath
+.project
+.settings
+
+# Ignore maven build output directory
+target
+bin

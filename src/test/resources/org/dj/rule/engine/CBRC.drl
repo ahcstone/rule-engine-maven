@@ -1,0 +1,200 @@
+//created on: 2019-6-16  
+//银监会的触发规则----先判断规则2到8禁止类规则,如果不是禁止类的交易, 再判断规则1
+//China Banking Regulatory Commission ，英文缩写：CBRC
+package org.dj.rule.engine
+import java.util.Map
+import java.util.HashMap
+import java.util.List
+import java.util.ArrayList
+import java.util.Date
+import org.dj.rule.engine.ConnectedTransaction
+
+//重大关联交易
+rule "wz-cbrc-rule1-sub01"
+salience 50
+activation-group "tradesum-group"
+
+	when
+        $cTransaction : ConnectedTransaction( cbrcConnected == true, cbrcProhibit == false, cbrcTradeType == "授信", ((tradeSum*100)/netCapital) > 1 )
+	then
+	    System.out.println("The wz-cbrc-rule1-sub01 is fired!");
+        $cTransaction.setRuleName("重大关联交易");
+        $cTransaction.setRuleMessage("该关联交易已达到银监会《商业银行与内部人和股东关联交易管理办法》第二十二条重大关联交易审议/审批的要求，根据《XX银行关联交易管理实施细则》对授信类重大关联交易的要求，该交易需由关联交易经办部门负责人、法律合规部关联交易管理人员、风险管理部关联交易管理人员（并经风险管理部负责人确认）、首席风险官审查后，提交至董事会关联交易控制委员会、董事会进行批准；独立董事应对重大关联交易的公允性，以及内部审批程序履行情况发表书面意见；重大关联交易应当在批准之日起十个工作日内报告监事会，同时报告中国银行业监督管理委员会。");
+    
+end
+
+rule "wz-cbrc-rule1-sub02"
+salience 50
+activation-group "balance-group"
+
+    when
+        $cTransaction : ConnectedTransaction( cbrcConnected == true, cbrcProhibit == false, cbrcTradeType == "授信", ((tradeBalance*100)/netCapital) > 5 )
+    then
+        System.out.println("The wz-cbrc-rule1-sub02 is fired!");
+        $cTransaction.setRuleName("重大关联交易");
+        $cTransaction.setRuleMessage("该关联交易已达到银监会《商业银行与内部人和股东关联交易管理办法》第二十二条重大关联交易审议/审批的要求，汇总交易余额已达‘本表中的汇总交易余额字段值’，根据《XX银行关联交易管理实施细则》对授信类重大关联交易的要求，该交易需由关联交易经办部门负责人、法律合规部关联交易管理人员、风险管理部关联交易管理人员（并经风险管理部负责人确认）、首席风险官审查后，提交至董事会关联交易控制委员会、董事会进行批准；独立董事应对重大关联交易的公允性，以及内部审批程序履行情况发表书面意见；重大关联交易应当在批准之日起十个工作日内报告监事会，同时报告中国银行业监督管理委员会。");
+    
+ end
+
+
+rule "wz-cbrc-rule1-sub03"
+salience 10
+activation-group "tradesum-group"
+
+    when
+        $cTransaction : ConnectedTransaction( cbrcConnected == true, cbrcProhibit == false, ((tradeSum*100)/netCapital) > 1 )
+    then
+        System.out.println("The wz-cbrc-rule1-sub03 is fired!");
+        $cTransaction.setRuleName("重大关联交易");
+        $cTransaction.setRuleMessage("该关联交易已达到银监会《商业银行与内部人和股东关联交易管理办法》第二十二条重大关联交易审议/审批的要求，根据《XX银行关联交易管理实施细则》对非授信类重大关联交易的要求，该交易需由关联交易经办部门负责人、法律合规部关联交易管理人员（并经法律合规部负责人确认）、关联交易经办部门主管行领导审查后，提交至董事会关联交易控制委员会、董事会进行批准；独立董事应对重大关联交易的公允性以及内部审批程序履行情况发表书面意见；重大关联交易应当在批准之日起十个工作日内报告监事会，同时报告中国银行业监督管理委员会。");
+    
+ end
+
+
+rule "wz-cbrc-rule1-sub04"
+salience 10
+activation-group "balance-group"
+
+    when
+        $cTransaction : ConnectedTransaction( cbrcConnected == true, cbrcProhibit == false, ((tradeBalance*100)/netCapital) > 5 )
+    then
+        System.out.println("The wz-cbrc-rule1-sub04 is fired! tradeBalance："+$cTransaction.getTradeBalance() + " netCapital:"+$cTransaction.getNetCapital());
+        System.out.println("tradeBalance/netCapital:"+(( $cTransaction.getTradeBalance()*100) / $cTransaction.getNetCapital() ));
+        
+        $cTransaction.setRuleName("重大关联交易");
+        $cTransaction.setRuleMessage("该关联交易已达到银监会《商业银行与内部人和股东关联交易管理办法》第二十二条重大关联交易审议/审批的要求，汇总交易余额已达‘本表中的汇总交易余额字段值’，根据《XX银行关联交易管理实施细则》对非授信类重大关联交易的要求，该交易需由关联交易经办部门负责人、法律合规部关联交易管理人员（并经法律合规部负责人确认）、关联交易经办部门主管行领导审查后，提交至董事会关联交易控制委员会、董事会进行批准；独立董事应对重大关联交易的公允性以及内部审批程序履行情况发表书面意见；重大关联交易应当在批准之日起十个工作日内报告监事会，同时报告中国银行业监督管理委员会。");
+    
+ end
+
+
+
+//以下为禁止类
+//不得为关联方的融资行为提供担保
+rule "wz-cbrc-rule2"
+salience 100
+
+    when
+        $cTransaction : ConnectedTransaction( cbrcConnected == true, srcSystemName == "融资性担保业务" )
+        //$cTransaction : ConnectedTransaction( cbrcConnected == true) and ConnectedTransaction( srcSystemName == "融资性担保业务" )
+    then
+        System.out.println("The wz-cbrc-rule2 is fired!");
+        $cTransaction.setCbrcProhibit(true);
+        $cTransaction.setRuleName("不得为关联方的融资行为提供担保");
+        $cTransaction.setRuleMessage("根据银监会《商业银行与内部人和股东关联交易管理办法》第二十九条规定，商业银行不得为关联方的融资行为提供担保，但关联方以银行存单、国债提供足额反担保的除外。请关注反担保情况。");
+        update($cTransaction);
+        
+end
+
+//股权作为质押提供授信
+rule "wz-cbrc-rule3"
+salience 100
+
+    when
+        $cTransaction : ConnectedTransaction( cbrcConnected == true, srcSystemName == "授信业务", pledgeName == "XX银行股份有限公司" )
+    then
+        System.out.println("The wz-cbrc-rule3 is fired!");
+        $cTransaction.setCbrcProhibit(true);
+        $cTransaction.setRuleName("股权作为质押提供授信");
+        $cTransaction.setRuleMessage("根据银监会《商业银行与内部人和股东关联交易管理办法》第二十九条规定，商业银行不得接受本行的股权作为质押提供授信。");
+        update($cTransaction);
+
+end
+
+//不得向关联方发放无担保贷款
+rule "wz-cbrc-rule4"
+salience 100
+
+    when
+        $cTransaction : ConnectedTransaction( cbrcConnected == true, srcSystemName == "贷款", guaranteeType == "信用类")
+    then
+        System.out.println("The wz-cbrc-rule4 is fired!");
+        $cTransaction.setCbrcProhibit(true);
+        $cTransaction.setRuleName("不得向关联方发放无担保贷款");
+        $cTransaction.setRuleMessage("根据银监会《商业银行与内部人和股东关联交易管理办法》第二十九条规定，商业银行不得向关联方发放无担保贷款。");
+        update($cTransaction);
+
+end
+
+//两年内不得向关联方提供授信 注两年的毫秒数为 63072000000
+rule "wz-cbrc-rule5"
+salience 100
+
+    when
+//        $map : Map($twoYear : this["twoYear"])
+        $cTransaction : ConnectedTransaction( cbrcConnected == true, srcSystemName == "授信业务", fiveType == "损失", new Date().getTime - tradeDate.getTime() < 63072000000 )
+    then
+        System.out.println("The wz-cbrc-rule5 is fired!");
+        $cTransaction.setCbrcProhibit(true);
+        $cTransaction.setRuleName("两年内不得向关联方提供授信");
+        $cTransaction.setRuleMessage("根据银监会《商业银行与内部人和股东关联交易管理办法》第三十条规定，商业银行向关联方提供授信发生损失的，在二年内不得再向该关联方提供授信，建议管理部门关注。");
+        
+        Map firedRule = new HashMap<String,String>();
+        firedRule.put("两年内不得向关联方提供授信","根据银监会《商业银行与内部人和股东关联交易管理办法》第三十条规定，商业银行向关联方提供授信发生损失的，在二年内不得再向该关联方提供授信，建议管理部门关注。");
+        $cTransaction.getFiredRules().add(firedRule);
+        update($cTransaction);
+
+end
+
+//单一关联方授信禁止限额
+rule "wz-cbrc-rule6"
+salience 100
+
+    when
+        $cTransaction : ConnectedTransaction( cbrcConnected == true, ((tradeBalance*100)/netCapital) > 10 )
+    then
+        System.out.println("The wz-cbrc-rule6 is fired!");
+        $cTransaction.setCbrcProhibit(true);
+        $cTransaction.setRuleName("单一关联方授信禁止限额");
+        $cTransaction.setRuleMessage("该关联方授信余额已接近或达到银监会《商业银行与内部人和股东关联交易管理办法》第三十二条单一关联方授信禁止限额，请部门进行处理");
+        
+        Map firedRule = new HashMap<String,String>();
+        firedRule.put("单一关联方授信禁止限额","该关联方授信余额已接近或达到银监会《商业银行与内部人和股东关联交易管理办法》第三十二条单一关联方授信禁止限额，请部门进行处理");
+        $cTransaction.getFiredRules().add(firedRule);
+        update($cTransaction);
+
+end
+
+//关联法人所在集团客户授信禁止限额
+rule "wz-cbrc-rule7"
+salience 100
+
+    when
+        $cTransaction : ConnectedTransaction( cbrcConnected == true, ((tradeBalance*100)/netCapital) > 15 )
+    then
+        System.out.println("The wz-cbrc-rule7 is fired!");
+        $cTransaction.setCbrcProhibit(true);
+        $cTransaction.setRuleName("关联法人所在集团客户授信禁止限额");
+        $cTransaction.setRuleMessage("该关联方授信余额已接近或达到银监会《商业银行与内部人和股东关联交易管理办法》第三十二条关联法人所在集团客户授信禁止限额，请部门进行处理");
+        
+        Map firedRule = new HashMap<String,String>();
+        firedRule.put("关联法人所在集团客户授信禁止限额","该关联方授信余额已接近或达到银监会《商业银行与内部人和股东关联交易管理办法》第三十二条关联法人所在集团客户授信禁止限额，请部门进行处理");
+        $cTransaction.getFiredRules().add(firedRule);
+        update($cTransaction);
+
+end
+
+//全部关联方授信禁止限额
+rule "wz-cbrc-rule8"
+salience 100
+
+    when
+        $cTransaction : ConnectedTransaction( cbrcConnected == true, ((tradeBalance*100)/netCapital) > 50 )
+    then
+        System.out.println("The wz-cbrc-rule8 is fired!");
+        $cTransaction.setCbrcProhibit(true);
+        $cTransaction.setRuleName("全部关联方授信禁止限额");
+        $cTransaction.setRuleMessage("关联方授信余额已接近或达到银监会《商业银行与内部人和股东关联交易管理办法》第三十二条，商业银行对全部关联方的授信余额不得超过商业银行资本净额的50%，请部门进行处理");
+        
+        Map firedRule = new HashMap<String,String>();
+        firedRule.put("全部关联方授信禁止限额","关联方授信余额已接近或达到银监会《商业银行与内部人和股东关联交易管理办法》第三十二条，商业银行对全部关联方的授信余额不得超过商业银行资本净额的50%，请部门进行处理");
+        $cTransaction.getFiredRules().add(firedRule);
+        update($cTransaction);
+
+end
+
+
+
+query "query-result"
+    $returnObj : ConnectedTransaction()
+end
+

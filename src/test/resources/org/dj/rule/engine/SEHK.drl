@@ -1,0 +1,206 @@
+//created on: 2019-6-14  注： 此代码为 规则脚本伪代码 未经单元测试验证； 实际运行时需要重写  
+//香港联合交易所有限公司（The Stock Exchange of Hong Kong Ltd.）简称 SEHK
+//针对联交所规定的关联交易，需要先进行1的计算，判断是否属于确认的持续关联交易，
+//    如果是，则进行持续关联交易的监测；
+//    如果不是（属于一次性关联交易），则继续后续指标的计算
+//所有联交所的一次性关联交易，需要进行指标（2）合并计算的判断，
+//    之后在基于判定结果依次进行指标（3）（4）（5）的计算
+//所有属于联交所规定的关联交易，均需要进行指标（6）的计算，具体规则参见指标。
+
+package com.hd.rule.engine
+import java.util.Map
+import java.util.HashMap
+import java.util.List
+import java.util.ArrayList
+import java.util.Date
+import com.hd.rcugrc.rule.engine.wz.ConnectedTransaction
+
+//持续关联交易检测
+rule "wz-sehk-rule1-sub01"
+salience 100
+activation-group "tradesum-group"
+
+	when
+        $cTransaction : ConnectedTransaction( sehkConnected == true, isContinuous == true, tradeSum <= tradeMaxUpdate )
+	then
+	    System.out.println("The wz-sehk-rule1-sub01 is fired!");
+        Map firedRule = new HashMap<String,String>();
+        firedRule.put("持续关联交易检测","该笔交易属于“持续关联交易，且汇总交易金额在上限范围内”");
+        $cTransaction.getFiredRules().add(firedRule);
+        //update($cTransaction);
+    
+end
+
+rule "wz-sehk-rule1-sub02"
+salience 90
+activation-group "tradesum-group"
+
+    when
+        $cTransaction : ConnectedTransaction( sehkConnected == true, isContinuous == true, tradeSum > tradeMaxUpdate, tradeSum <= tradeMaxOld, )
+    then
+        System.out.println("The wz-sehk-rule1-sub02 is fired!");
+        Map firedRule = new HashMap<String,String>();
+        firedRule.put("持续关联交易检测","该笔交易属于“持续关联交易，且汇总交易金额接近上限”");
+        $cTransaction.getFiredRules().add(firedRule);
+    
+ end
+
+
+rule "wz-sehk-rule1-sub03"
+salience 80
+activation-group "tradesum-group"
+
+    when
+        $cTransaction : ConnectedTransaction( sehkConnected == true, isContinuous == true, tradeSum > tradeMaxOld, )
+    then
+        System.out.println("The wz-sehk-rule1-sub03 is fired!");
+        Map firedRule = new HashMap<String,String>();
+        firedRule.put("持续关联交易检测","该笔交易属于“持续关联交易，汇总交易金额已经超出上限范围”");
+        $cTransaction.getFiredRules().add(firedRule);
+    
+ end
+
+
+//以下为一次性关联交易(相对于规则1的持续性关联交易)
+//需要合并计算的关联交易
+rule "wz-sehk-rule2"
+salience 50
+
+    when
+        $cTransaction : ConnectedTransaction( sehkConnected == true, isContinuous == false, needMerge == true)
+    then
+        System.out.println("The wz-sehk-rule2 is fired!");
+        Map firedRule = new HashMap<String,String>();
+        firedRule.put("需要合并计算的关联交易","需要合并计算的关联交易");
+        $cTransaction.getFiredRules().add(firedRule);
+        
+end
+
+//是否为完全豁免的关联交易
+rule "wz-sehk-rule3-sub01"
+salience 50
+
+    when
+        $cTransaction : ConnectedTransaction( sehkConnected == true, isContinuous == false )
+        //“是否为附属公司层面关联方”字段信息显示为“是”  资产比率<1% ，且收益比率<1% ，且代价比率1%
+        //1%<=上述比率最高项<5%，且交易代价<300万港币
+    then
+        System.out.println("The wz-sehk-rule3-sub01 is fired!");
+        Map firedRule = new HashMap<String,String>();
+        firedRule.put("无需公告、申报，及独立股东批准的关联交易","根据香港联交所的要求，该笔关联交易可豁免遵守有关公告、申报及独立股东批准的规定。");
+        $cTransaction.getFiredRules().add(firedRule);
+
+end
+
+//是否为完全豁免的关联交易
+rule "wz-sehk-rule3-sub02"
+salience 50
+
+    when
+        $cTransaction : ConnectedTransaction( sehkConnected == true, isContinuous == false )
+        //“是否为附属公司层面关联方”字段信息显示为“否”  资产比率<0.1% ，且收益比率<0.1% ，且代价比率<0.1%
+        //1%<=上述比率最高项<5%，且交易代价<300万港币
+    then
+        System.out.println("The wz-sehk-rule3-sub02 is fired!");
+        Map firedRule = new HashMap<String,String>();
+        firedRule.put("无需公告、申报，及独立股东批准的关联交易","根据香港联交所的要求，该笔关联交易可豁免遵守有关公告、申报及独立股东批准的规定。");
+        $cTransaction.getFiredRules().add(firedRule);
+
+end
+
+//是否为完全豁免的关联交易
+rule "wz-sehk-rule3-sub03"
+salience 50
+
+    when
+        $cTransaction : ConnectedTransaction( sehkConnected == true, isContinuous == true )
+        //持续关联交易交易金额 <= 持续关联交易交易金额上限
+    then
+        System.out.println("The wz-sehk-rule3-sub03 is fired!");
+        Map firedRule = new HashMap<String,String>();
+        firedRule.put("无需公告、申报，及独立股东批准的关联交易","根据香港联交所的要求，该笔关联交易可豁免遵守有关公告、申报及独立股东批准的规定。");
+        $cTransaction.getFiredRules().add(firedRule);
+
+end
+
+//是否为部分豁免的关联交易
+rule "wz-sehk-rule4-sub01"
+salience 50
+
+    when
+        $cTransaction : ConnectedTransaction( sehkConnected == true, isContinuous == false)
+        //资产比率<5% ，且收益比率<5% ，且代价比率<5%
+        //5%<=上述比率最高项<25%，且交易代价<1000万港币
+    then
+        System.out.println("The wz-sehk-rule4-sub01 is fired!");
+        Map firedRule = new HashMap<String,String>();
+        firedRule.put("需要公告、申报，但不需要独立股东批准的关联交易","根据香港联交所的要求，该笔关联交易获豁免遵守有关独立股东批准的规定，但需遵守关于公告及申报的相关规定。");
+        $cTransaction.getFiredRules().add(firedRule);
+
+end
+
+rule "wz-sehk-rule4-sub02"
+salience 50
+
+    when
+        $cTransaction : ConnectedTransaction( sehkConnected == true, isContinuous == true)
+        //持续关联交易交易金额 <= 持续关联交易交易金额上限
+    then
+        System.out.println("The wz-sehk-rule4-sub02 is fired!");
+        Map firedRule = new HashMap<String,String>();
+        firedRule.put("需要公告、申报，但不需要独立股东批准的关联交易","根据香港联交所的要求，该笔关联交易获豁免遵守有关独立股东批准的规定，但需遵守关于公告及申报的相关规定。");
+        $cTransaction.getFiredRules().add(firedRule);
+
+end
+
+//是否为非豁免的关联交易
+rule "wz-sehk-rule5-sub01"
+salience 50
+
+    when
+        $cTransaction : ConnectedTransaction( sehkConnected == true, isContinuous == false)
+        //资产比率>=25% ，或收益比率>=25%，或代价比率>=25%
+        //5%<=上述比率最高项<25%，且交易代价>=1000万港币
+        $cTransaction : ConnectedTransaction( sehkConnected == true, srcSystemName == "授信业务", fiveType == "损失", new Date().getTime - tradeDate.getTime() < 63072000000 )
+    then
+        System.out.println("The wz-sehk-rule5-sub01 is fired!");
+        Map firedRule = new HashMap<String,String>();
+        firedRule.put("需要公告、申报，及独立股东批准的关联交易","根据香港联交所的要求，该笔关联交易需要遵守关于公告及申报的相关规定，以及有关独立股东批准的规定。");
+        $cTransaction.getFiredRules().add(firedRule);
+
+end
+
+rule "wz-sehk-rule5-sub02"
+salience 50
+
+    when
+        $cTransaction : ConnectedTransaction( sehkConnected == true, isContinuous == true)
+        //持续关联交易交易金额 <= 持续关联交易交易金额上限
+        $cTransaction : ConnectedTransaction( sehkConnected == true, srcSystemName == "授信业务", fiveType == "损失", new Date().getTime - tradeDate.getTime() < 63072000000 )
+    then
+        System.out.println("The wz-sehk-rule5-sub02 is fired!");
+        Map firedRule = new HashMap<String,String>();
+        firedRule.put("需要公告、申报，及独立股东批准的关联交易","根据香港联交所的要求，该笔持续关联交易需要遵守关于公告及申报的相关规定，以及有关独立股东批准的规定。");
+        $cTransaction.getFiredRules().add(firedRule);
+
+end
+
+//疑似持续交易  -- 关联交易 需要添加属性 累计交易次数
+rule "wz-sehk-rule6"
+salience 50
+
+    when
+        $cTransaction : ConnectedTransaction( sehkConnected == true, isContinuous == false, tradeCount > 2)
+    then
+        System.out.println("The wz-sehk-rule6 is fired!");
+        Map firedRule = new HashMap<String,String>();
+        firedRule.put("疑似持续交易","出现疑似持续关联交易，请确认。");
+        $cTransaction.getFiredRules().add(firedRule);
+
+end
+
+
+query "query-result"
+    $returnObj : ConnectedTransaction()
+end
+
