@@ -11,7 +11,7 @@
   
   
   <properties>
-    <runtime.version>7.11.0.Final</runtime.version>
+    <runtime.version>7.60.0.Final</runtime.version>
   </properties>
 
   <repositories>
